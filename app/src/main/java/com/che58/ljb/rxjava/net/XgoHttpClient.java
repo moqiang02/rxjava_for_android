@@ -83,7 +83,7 @@ public class XgoHttpClient {
     /**
      * 通过http请求的基本信息，创建一个Request对象
      */
-    public Request getRequest(String url, String method, TreeMap<String, Object> params) {
+    public Request getRequest(String url, String method, Map<String, Object> params) {
         if (params == null) {
             params = new TreeMap<>();
         }
@@ -114,7 +114,7 @@ public class XgoHttpClient {
      * 初始化Body类型请求参数
      * init Body type params
      */
-    private RequestBody initRequestBody(TreeMap<String , Object> params) {
+    private RequestBody initRequestBody(Map<String , Object> params) {
         MultipartBuilder bodyBuilder = new MultipartBuilder().type(MultipartBuilder.FORM);
         Set<Map.Entry<String, Object>> entries = params.entrySet();
         for (Map.Entry<String, Object> entry : entries) {
@@ -144,20 +144,20 @@ public class XgoHttpClient {
      * 初始化Get请求参数
      * init Get type params
      */
-    private String initGetRequest(String url, TreeMap<String , Object> params) {
+    private String initGetRequest(String url, Map<String , Object> params) {
         StringBuilder sb = new StringBuilder(url);
         //has params ?
         if (params.size() > 0) {
-            sb.append("?");
+            sb.append('?');
             Set<Map.Entry<String, Object>> entries = params.entrySet();
             int count = 0;
             for (Map.Entry entry : entries) {
                 count++;
-                sb.append(entry.getKey()).append("=").append(entry.getValue());
+                sb.append(entry.getKey()).append('=').append(entry.getValue());
                 if (count == params.size()) {
                     break;
                 }
-                sb.append("&");
+                sb.append('&');
             }
             url = new String(sb);
         }

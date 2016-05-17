@@ -25,7 +25,15 @@ import okio.BufferedSource;
  */
 public class XgoLogInterceptor implements Interceptor {
 
+    private static final String BYTE_BODY = "-byte body)";
+
+    private static final String END = "--> END ";
+    
     private static final Charset UTF8 = Charset.forName("UTF-8");
+
+    private final Logger logger;
+
+    private volatile Level level = Level.NONE;
 
     public enum Level {
         /** No logs. */
@@ -84,8 +92,6 @@ public class XgoLogInterceptor implements Interceptor {
     }
 
     public interface Logger {
-        void log(String message);
-
         /** A {@link Logger} defaults output appropriate for the current platform. */
         Logger DEFAULT = new Logger() {
             @Override
@@ -93,6 +99,9 @@ public class XgoLogInterceptor implements Interceptor {
                 Platform.get().log(message);
             }
         };
+
+        void log(String message);
+
     }
 
     public XgoLogInterceptor() {
@@ -102,10 +111,6 @@ public class XgoLogInterceptor implements Interceptor {
     public XgoLogInterceptor(Logger logger) {
         this.logger = logger;
     }
-
-    private final Logger logger;
-
-    private volatile Level level = Level.NONE;
 
     /** Change the level at which this interceptor logs. */
     public XgoLogInterceptor setLevel(Level level) {
@@ -135,12 +140,12 @@ public class XgoLogInterceptor implements Interceptor {
 
         Connection connection = chain.connection();
         Protocol protocol = connection != null ? connection.getProtocol() : Protocol.HTTP_1_1;
-        String requestStartMessage =
-                "--> " + request.method() + ' ' + request.url() + ' ' + protocol(protocol);
+        StringBuilder requestStartMessage = new StringBuilder();
+        requestStartMessage.append("--> " + request.method() + ' ' + request.url() + ' ' + protocol(protocol));
         if (!logHeaders && hasRequestBody) {
-            requestStartMessage += " (" + requestBody.contentLength() + "-byte body)";
+            requestStartMessage.append(" (" + requestBody.contentLength() + BYTE_BODY);
         }
-        logger.log(requestStartMessage);
+        logger.log(requestStartMessage.toString());
 
         if (logHeaders) {
             if (hasRequestBody) {
@@ -164,9 +169,9 @@ public class XgoLogInterceptor implements Interceptor {
             }
 
             if (!logBody || !hasRequestBody) {
-                logger.log("--> END " + request.method());
+                logger.log(END + request.method());
             } else if (bodyEncoded(request.headers())) {
-                logger.log("--> END " + request.method() + " (encoded body omitted)");
+                logger.log(END + request.method() + " (encoded body omitted)");
             } else {
                 Buffer buffer = new Buffer();
                 requestBody.writeTo(buffer);
@@ -180,8 +185,8 @@ public class XgoLogInterceptor implements Interceptor {
                 logger.log("");
                 logger.log(buffer.readString(charset));
 
-                logger.log("--> END " + request.method()
-                        + " (" + requestBody.contentLength() + "-byte body)");
+                logger.log(END + request.method()
+                        + " (" + requestBody.contentLength() + BYTE_BODY);
             }
         }
 
@@ -220,7 +225,7 @@ public class XgoLogInterceptor implements Interceptor {
                     logger.log(buffer.clone().readString(charset));
                 }
 
-                logger.log("<-- END HTTP (" + buffer.size() + "-byte body)");
+                logger.log("<-- END HTTP (" + buffer.size() + BYTE_BODY);
             }
         }
 
@@ -236,44 +241,4 @@ public class XgoLogInterceptor implements Interceptor {
         return protocol == Protocol.HTTP_1_0 ? "HTTP/1.0" : "HTTP/1.1";
     }
 
-   /* @Override
-    public Response intercept(Chain chain) throws IOException {
-        Request request = chain.request();
-        long t1 = System.nanoTime();
-        String requestLog = "\t" + request.method() + "::" + request.urlString();
-
-        if (request.method().compareToIgnoreCase("post") == 0) {
-            requestLog = "\n" + requestLog + "\n" + bodyToString(request);
-        }
-        XgoLog.d("request::\n" + requestLog);
-
-        Response response = null;
-        String bodyString = null;
-        try {
-            response = chain.proceed(request);
-            bodyString  = response.body().string();
-        }catch (Exception e){
-            e.printStackTrace();
-        }
-
-        long t2 = System.nanoTime();
-
-        XgoLog.d("response::" + (t2 - t1) / 1e6d + "ms\n" + bodyString);
-
-
-        return  response==null ? null :response.newBuilder()
-                .body(ResponseBody.create(response.body().contentType(), bodyString))
-                .build();
-    }
-
-    private static String bodyToString(final Request request) {
-        try {
-            final Request copy = request.newBuilder().build();
-            final Buffer buffer = new Buffer();
-            copy.body().writeTo(buffer);
-            return buffer.readUtf8();
-        } catch (final IOException e) {
-            return "did not work";
-        }
-    }*/
 }

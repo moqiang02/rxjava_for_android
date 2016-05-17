@@ -40,26 +40,26 @@ public class ProgressWheel extends View {
     private int barWidth = 4;
     private int rimWidth = 4;
 
-    private final int barLength = 16;
-    private final int barMaxLength = 270;
+    private static final int BAR_LENGTH = 16;
+    private static final int BAR_MAX_LENGTH = 270;
 
-    private boolean fillRadius = false;
+    private boolean fillRadius;
 
-    private double timeStartGrowing = 0;
+    private double timeStartGrowing;
     private double barSpinCycleTime = 460;
-    private float barExtraLength = 0;
+    private float barExtraLength;
     private boolean barGrowingFromFront = true;
 
-    private long pausedTimeWithoutGrowing = 0;
-    private final long pauseGrowingTime = 200;
+    private long pausedTimeWithoutGrowing;
+    private static final long PAUSE_GROWING_TIME = 200;
 
     //Colors (with defaults)
     private int barColor = 0xAA000000;
     private int rimColor = 0x00FFFFFF;
 
     //Paints
-    private Paint barPaint = new Paint();
-    private Paint rimPaint = new Paint();
+    private final Paint barPaint = new Paint();
+    private final Paint rimPaint = new Paint();
 
     //Rectangles
     private RectF circleBounds = new RectF();
@@ -67,15 +67,14 @@ public class ProgressWheel extends View {
     //Animation
     //The amount of degrees per second
     private float spinSpeed = 230.0f;
-    //private float spinSpeed = 120.0f;
     // The last time the spinner was animated
-    private long lastTimeAnimated = 0;
+    private long lastTimeAnimated;
 
     private boolean linearProgress;
 
-    private float mProgress = 0.0f;
-    private float mTargetProgress = 0.0f;
-    private boolean isSpinning = false;
+    private float mProgress;
+    private float mTargetProgress;
+    private boolean isSpinning;
 
     private ProgressCallback callback;
 
@@ -288,7 +287,7 @@ public class ProgressWheel extends View {
             lastTimeAnimated = SystemClock.uptimeMillis();
 
             float from = mProgress - 90;
-            float length = barLength + barExtraLength;
+            float length = BAR_LENGTH + barExtraLength;
 
             if (isInEditMode()) {
                 from = 0;
@@ -345,21 +344,19 @@ public class ProgressWheel extends View {
     }
 
     private void updateBarLength(long deltaTimeInMilliSeconds) {
-        if (pausedTimeWithoutGrowing >= pauseGrowingTime) {
+        if (pausedTimeWithoutGrowing >= PAUSE_GROWING_TIME) {
             timeStartGrowing += deltaTimeInMilliSeconds;
 
             if (timeStartGrowing > barSpinCycleTime) {
                 // We completed a size change cycle
                 // (growing or shrinking)
                 timeStartGrowing -= barSpinCycleTime;
-                //if(barGrowingFromFront) {
                 pausedTimeWithoutGrowing = 0;
-                //}
                 barGrowingFromFront = !barGrowingFromFront;
             }
 
             float distance = (float) Math.cos((timeStartGrowing / barSpinCycleTime + 1) * Math.PI) / 2 + 0.5f;
-            float destLength = (barMaxLength - barLength);
+            float destLength = (BAR_MAX_LENGTH - BAR_LENGTH);
 
             if (barGrowingFromFront) {
                 barExtraLength = distance * destLength;
@@ -676,17 +673,29 @@ public class ProgressWheel extends View {
     }
 
     static class WheelSavedState extends BaseSavedState {
-        float mProgress;
-        float mTargetProgress;
-        boolean isSpinning;
-        float spinSpeed;
-        int barWidth;
-        int barColor;
-        int rimWidth;
-        int rimColor;
-        int circleRadius;
-        boolean linearProgress;
-        boolean fillRadius;
+        private float mProgress;
+        private float mTargetProgress;
+        private boolean isSpinning;
+        private float spinSpeed;
+        private int barWidth;
+        private int barColor;
+        private int rimWidth;
+        private int rimColor;
+        private int circleRadius;
+        private boolean linearProgress;
+        private boolean fillRadius;
+
+        //required field that makes Parcelables from a Parcel
+        public static final Creator<WheelSavedState> CREATOR =
+                new Creator<WheelSavedState>() {
+                    public WheelSavedState createFromParcel(Parcel in) {
+                        return new WheelSavedState(in);
+                    }
+
+                    public WheelSavedState[] newArray(int size) {
+                        return new WheelSavedState[size];
+                    }
+                };
 
         WheelSavedState(Parcelable superState) {
             super(superState);
@@ -723,17 +732,6 @@ public class ProgressWheel extends View {
             out.writeByte((byte) (fillRadius ? 1 : 0));
         }
 
-        //required field that makes Parcelables from a Parcel
-        public static final Creator<WheelSavedState> CREATOR =
-                new Creator<WheelSavedState>() {
-                    public WheelSavedState createFromParcel(Parcel in) {
-                        return new WheelSavedState(in);
-                    }
-
-                    public WheelSavedState[] newArray(int size) {
-                        return new WheelSavedState[size];
-                    }
-                };
     }
 
     public interface ProgressCallback {
